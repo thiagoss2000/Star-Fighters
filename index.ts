@@ -1,6 +1,7 @@
 import express, { json, request, response } from "express";
 import axios from "axios";
 import db from "./db.js";
+import joi from "joi";
 import authRouter from "./routes/authRoute.js";
 
 const app = express();
@@ -8,8 +9,17 @@ app.use(json());
 
 //app.use(authRouter);
 
+const authSchema = joi.object({
+    firstUser: joi.string().required(),
+    secondUser: joi.string().required()
+});
+
 app.post("/battle", async (request, response) => {
     const { firstUser, secondUser } = request.body;
+
+    const { error } = authSchema.validate(request.body, { abortEarly: false });        
+    if (error) return response.status(422).send(error.details.map(({message}) => message))
+
     try {
         const id = await db.query(`SELECT id FROM fighters WHERE username = $1`, [firstUser]);
         if (id.rows.length == 0){
